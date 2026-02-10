@@ -17,6 +17,9 @@ namespace vision {
     cv::Mat3b read_video_from_source(cv::VideoCapture &cap) {
         cv::Mat image;
         cap >> image;
+        if (image.empty()) {
+            std::cout<<"video_end"<<std::endl;
+        }
         return image;
     }
 
@@ -56,6 +59,11 @@ namespace vision {
                     polygons.push_back(temp_polygon);
                 }
             }
+        }
+
+        if (polygons.empty()) {
+            std::vector<std::vector<cv::Point>> empty;
+            return empty;
         }
 
         for (int i=0;i<polygons.size();i++) { //按照面积升序排列图形
