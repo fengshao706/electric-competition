@@ -62,6 +62,7 @@ namespace vision {
         }
 
         if (polygons.empty()) {
+            std::cout<<"polygon_empty"<<std::endl;
             std::vector<std::vector<cv::Point>> empty;
             return empty;
         }
@@ -122,5 +123,58 @@ namespace vision {
         std::vector<cv::Vec3f> circle;
         cv::HoughCircles(thresh_image,circle,cv::HOUGH_GRADIENT_ALT,1.5,20,100,0.8,10,500);
         return circle;
+    }
+
+    std::vector<cv::Point2f> perspective_transform_get_center_point(cv::Mat pre_image,std::vector<std::vector<cv::Point> > contours,
+                                                                    cv::Size after_transform_image_size) {
+        std::vector<cv::Point2f> dst_pts = {
+            {0, 0}, {0, static_cast<float>(after_transform_image_size.height)},
+            {
+                static_cast<float>(after_transform_image_size.width),
+                static_cast<float>(after_transform_image_size.height)
+            },
+            {static_cast<float>(after_transform_image_size.width), 0}
+        }; //变换后的四个点坐标
+
+        std::vector<int> position_index{0, 1, 2, 3};
+        for (int i = 0; i < 3; i++) {
+            //将坐标之和从小到大排列
+            for (int j = 0; j < 3; j++) {
+                if (contours[0][position_index[j]].x + contours[0][position_index[j]].y > contours[0][position_index[
+                        j + 1]].x + contours[0][position_index[j + 1]].y) {
+                    int temp = position_index[j];
+                    position_index[j] = position_index[j + 1];
+                    position_index[j + 1] = temp;
+                }
+            }
+        }
+        if (contours[0][position_index[1]].x > contours[0][position_index[3]].x) {
+            int temp=position_index[1];
+            position_index[1]=position_index[3];
+            position_index[3]=temp;
+        }
+
+
+        std::vector<cv::Point2f> src_pts = { //变换前的四个点坐标
+            {static_cast<float>(contours[0][position_index[0]].x), static_cast<float>(contours[0][position_index[0]].y)},
+            {static_cast<float>(contours[0][position_index[1]].x), static_cast<float>(contours[0][position_index[1]].y)},
+            {static_cast<float>(contours[0][position_index[3]].x), static_cast<float>(contours[0][position_index[3]].y)},
+            {static_cast<float>(contours[0][position_index[2]].x), static_cast<float>(contours[0][position_index[2]].y)}
+        };
+        std::cout<<contours[0]<<std::endl;
+        cv::Mat H = cv::getPerspectiveTransform(src_pts,dst_pts); //获得透视变换矩阵
+        cv::Mat H_inv = H.inv();
+
+        cv::Mat3b output_image;
+        cv::warpPerspective(pre_image,output_image,H,cv::Size(400,300));
+
+        cv::Point2f center_point=cv::Point(output_image.cols/2,output_image.rows/2);
+        std::vector<cv::Point2f> pre_center_points;
+        std::vector<cv::Point2f> center_points;
+        center_points.push_back(center_point);
+
+        cv::perspectiveTransform(center_points,pre_center_points,H_inv);
+
+        return pre_center_points;
     }
 }
