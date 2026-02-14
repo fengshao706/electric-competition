@@ -33,8 +33,8 @@ namespace vision {
         cv::adaptiveThreshold(gray_image,thresh_image,255,cv::ADAPTIVE_THRESH_GAUSSIAN_C,cv::THRESH_BINARY_INV,threshold_size,1);
 
         cv::Mat kernel=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(closing_size,closing_size));
-        cv::dilate(thresh_image,thresh_image,kernel);
         cv::erode(thresh_image,thresh_image,kernel);
+        cv::dilate(thresh_image,thresh_image,kernel);
         return thresh_image;
     }
 
@@ -166,7 +166,7 @@ namespace vision {
         cv::Mat H_inv = H.inv();
 
         cv::Mat3b output_image;
-        cv::warpPerspective(pre_image,output_image,H,cv::Size(400,300));
+        cv::warpPerspective(pre_image,output_image,H,cv::Size(after_transform_image_size.width,after_transform_image_size.height));
 
         cv::Point2f center_point=cv::Point(output_image.cols/2,output_image.rows/2);
         std::vector<cv::Point2f> pre_center_points;
