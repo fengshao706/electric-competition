@@ -2,9 +2,10 @@
 // Created by wjr on 2026/2/10.
 //
 #include "image_processor.h"
+#include "algorithm.h"
 
 namespace vision {
-    cv::Mat3b read_image_from_source(std::string path) {
+    cv::Mat3b read_image_from_source(const std::string path) {
         cv::Mat image;
         try {
             image=cv::imread(path);
@@ -23,14 +24,14 @@ namespace vision {
         return image;
     }
 
-    cv::Mat1b image_preprocessing(cv::Mat3b &image,cv::Size image_size,int gaussian_blur_size,int threshold_size,int closing_size) {
+    cv::Mat1b image_preprocessing(cv::Mat3b &image,cv::Size image_size,int gaussian_blur_size,int threshold_size,double threshold_c,int closing_size) {
         cv::resize(image,image,image_size);
         cv::Mat gray_image;
         cv::cvtColor(image,gray_image,cv::COLOR_BGR2GRAY);
         cv::GaussianBlur(gray_image,gray_image,cv::Size(gaussian_blur_size,gaussian_blur_size),0);
 
         cv::Mat thresh_image;
-        cv::adaptiveThreshold(gray_image,thresh_image,255,cv::ADAPTIVE_THRESH_GAUSSIAN_C,cv::THRESH_BINARY_INV,threshold_size,1);
+        cv::adaptiveThreshold(gray_image,thresh_image,255,cv::ADAPTIVE_THRESH_GAUSSIAN_C,cv::THRESH_BINARY_INV,threshold_size,threshold_c);
 
         cv::Mat kernel=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(closing_size,closing_size));
         cv::erode(thresh_image,thresh_image,kernel);
@@ -136,30 +137,18 @@ namespace vision {
             {static_cast<float>(after_transform_image_size.width), 0}
         }; //变换后的四个点坐标
 
-        std::vector<int> position_index{0, 1, 2, 3};
-        for (int i = 0; i < 3; i++) {
-            //将坐标之和从小到大排列
-            for (int j = 0; j < 3; j++) {
-                if (contours[0][position_index[j]].x + contours[0][position_index[j]].y > contours[0][position_index[
-                        j + 1]].x + contours[0][position_index[j + 1]].y) {
-                    int temp = position_index[j];
-                    position_index[j] = position_index[j + 1];
-                    position_index[j + 1] = temp;
-                }
-            }
+        std::vector<cv::Point2f> corners;
+        for (auto &contour : contours[0]) {
+            corners.emplace_back(contour.x,contour.y);
         }
-        if (contours[0][position_index[1]].x > contours[0][position_index[3]].x) {
-            int temp=position_index[1];
-            position_index[1]=position_index[3];
-            position_index[3]=temp;
-        }
+        algorithm::four_points_sorting(corners);
 
 
         std::vector<cv::Point2f> src_pts = { //变换前的四个点坐标
-            {static_cast<float>(contours[0][position_index[0]].x), static_cast<float>(contours[0][position_index[0]].y)},
-            {static_cast<float>(contours[0][position_index[1]].x), static_cast<float>(contours[0][position_index[1]].y)},
-            {static_cast<float>(contours[0][position_index[3]].x), static_cast<float>(contours[0][position_index[3]].y)},
-            {static_cast<float>(contours[0][position_index[2]].x), static_cast<float>(contours[0][position_index[2]].y)}
+            {corners[0].x, corners[0].y},
+            {corners[1].x, corners[1].y},
+            {corners[2].x, corners[2].y},
+            {corners[3].x, corners[3].y}
         };
         std::cout<<contours[0]<<std::endl;
         cv::Mat H = cv::getPerspectiveTransform(src_pts,dst_pts); //获得透视变换矩阵

@@ -8,7 +8,7 @@ int main() {
 
     while (true) {
         cv::Mat3b image=vision::read_video_from_source(cap);
-        cv::Mat1b thresh_image=vision::image_preprocessing(image,cv::Size(1280,720),13,11,3);
+        cv::Mat1b thresh_image=vision::image_preprocessing(image,cv::Size(1280,720),13,11,1,3);
 
         std::vector<std::vector<cv::Point>> inner_rectangle_contour=vision::get_inner_rectangle(thresh_image,60000,0.7,0.95);
 
